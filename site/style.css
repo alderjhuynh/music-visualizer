@@ -13,21 +13,40 @@
 
 *{ box-sizing: border-box; }
 
+html{
+  height: -webkit-fill-available;
+}
 html, body{
   margin:0; padding:0; height:100%;
+  min-height: -webkit-fill-available;
   background: var(--void);
   color: var(--ink);
   font-family: var(--font-mono);
   overflow: hidden;
+}
+/* Use dynamic viewport units so mobile browser chrome doesn't obscure bottom */
+@supports (height: 100dvh){
+  html, body{
+    height: 100dvh;
+    min-height: 100dvh;
+  }
 }
 
 .stage{
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   min-height: 480px;
   transform: rotate(-3deg);
   transform-origin: center center;
+}
+@supports (height: 100dvh){
+  .stage{
+    height: 100dvh;
+    min-height: max(480px, 100dvh);
+  }
 }
 
 canvas#canvas{
@@ -72,11 +91,15 @@ canvas#canvas{
   position: absolute;
   inset: 0;
   padding: clamp(16px, 4vw, 48px) clamp(40px, 6vw, 72px);
+  /* lift bottom above angled stage edge + iOS home indicator */
+  padding-bottom: calc(clamp(16px, 4vw, 48px) + env(safe-area-inset-bottom, 0px) + 8px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   pointer-events: none;
   z-index: 2;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .hud-top{ max-width: 640px; }
@@ -119,6 +142,9 @@ canvas#canvas{
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  min-height: 0;
 }
 
 .hud-bottom{
@@ -221,6 +247,10 @@ canvas#waveCanvas{
   justify-content: center;
   gap: 14px;
   pointer-events: auto;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 4;
 }
 #playBtn{
   width: 36px; height: 36px;
@@ -267,8 +297,49 @@ canvas#waveCanvas{
 .invert-bl{ clip-path: polygon(0% 76%, 40% 100%, 0% 100%); }
 
 @media (max-width: 720px){
-  .hud{ padding: 16px 40px; }
+  .stage{
+    transform: rotate(-1.8deg) scale(0.965);
+    height: 100svh;
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+  .hud{
+    padding: 14px 40px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px) + 16px);
+    gap: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hud, .hud-cluster, .transport{ pointer-events: auto; }
   .hud-stats{ display:none; }
   .counters{ display:none; }
   .edge{ font-size: 11px; }
+  .hud-bottom{
+    gap: 14px;
+    align-items: stretch;
+  }
+  .meters{
+    height: clamp(110px, 20dvh, 180px);
+    flex-shrink: 0;
+  }
+  .waveform-wrap{
+    min-width: 0;
+    flex: 1 1 150px;
+  }
+  canvas#waveCanvas{ height: 48px; }
+  .transport{ padding-bottom: 2px; }
+  .marquee-wrap{ padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+@media (max-width: 480px){
+  .stage{ transform: rotate(-1.2deg) scale(0.97); }
+  .hud{ padding-left: 32px; padding-right: 32px; }
+}
+
+@media (max-height: 600px){
+  .meters{ height: 100px; }
+  canvas#waveCanvas{ height: 40px; }
+  .hud-bottom{ gap: 10px; }
+  .hud-cluster{ gap: 6px; }
 }
