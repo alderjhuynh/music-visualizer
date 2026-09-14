@@ -261,8 +261,20 @@ canvas#waveCanvas{
   cursor: pointer;
   font-size: 13px;
   display:flex; align-items:center; justify-content:center;
+  font-variant-emoji: text;
+  -webkit-font-variant-emoji: text;
+  text-rendering: geometricPrecision;
+  font-family: var(--font-mono);
 }
 #playBtn:hover{ background: var(--ink); color: var(--void); }
+#playBtn svg{
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
+  fill: currentColor;
+  stroke: none;
+}
 
 .tracklist{
   display: flex;

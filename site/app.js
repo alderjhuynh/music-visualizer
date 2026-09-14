@@ -365,19 +365,26 @@ function tick() {
   els.edgeRight.style.transform = `translateY(${edgeOffset}px)`;
 }
 
+const PLAY_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M8 5.14v14l11-7z"></path></svg>';
+const PAUSE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>';
+function setPlayState(isPlaying) {
+  els.playBtn.innerHTML = isPlaying ? PAUSE_SVG : PLAY_SVG;
+  els.playBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+}
+
 els.playBtn.addEventListener('click', async () => {
   ensureAudioGraph();
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (els.audio.paused) {
     await els.audio.play();
-    els.playBtn.textContent = '\u23f8';
+    setPlayState(true);
   } else {
     els.audio.pause();
-    els.playBtn.textContent = '\u25b6';
+    setPlayState(false);
   }
 });
 
-els.audio.addEventListener('ended', () => { els.playBtn.textContent = '\u25b6'; });
+els.audio.addEventListener('ended', () => { setPlayState(false); });
 
 resizeCanvases();
 loadManifest();
