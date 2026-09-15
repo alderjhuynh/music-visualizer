@@ -119,6 +119,13 @@ function ensureAudioGraph() {
   analyser.connect(audioCtx.destination);
 }
 
+function trackIndexFromUrl() {
+  const requested = new URLSearchParams(window.location.search).get('track');
+  if (!requested) return 0;
+  const idx = manifest.findIndex((t) => t.id === requested);
+  return idx >= 0 ? idx : 0;
+}
+
 async function loadManifest() {
   const res = await fetch('manifest.json');
   manifest = await res.json();
@@ -126,13 +133,13 @@ async function loadManifest() {
   manifest.forEach((track, i) => {
     const btn = document.createElement('button');
     btn.textContent = track.title;
-    btn.addEventListener('click', () => selectTrack(i));
+    btn.addEventListener('click', () => selectTrack(i, { updateUrl: true }));
     els.tracklist.appendChild(btn);
   });
-  if (manifest.length) selectTrack(0);
+  if (manifest.length) selectTrack(trackIndexFromUrl());
 }
 
-async function selectTrack(index) {
+async function selectTrack(index, { updateUrl = false } = {}) {
   const track = manifest[index];
   [...els.tracklist.children].forEach((b, i) => b.classList.toggle('active', i === index));
 
@@ -144,7 +151,18 @@ async function selectTrack(index) {
   edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
   marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
   drawWaveformOverview(els.audio.currentTime || 0, current.duration);
+
+  if (updateUrl) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('track', track.id);
+    history.pushState({ track: track.id }, '', url);
+  }
 }
+
+window.addEventListener('popstate', () => {
+  if (!manifest.length) return;
+  selectTrack(trackIndexFromUrl());
+});
 
 function drawWaveformOverview(t, dur) {
   const w = els.wave.width, h = els.wave.height;
@@ -372,7 +390,7 @@ function setPlayState(isPlaying) {
   els.playBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
 }
 
-els.playBtn.addEventListener('click', async () => {
+async function togglePlayback() {
   ensureAudioGraph();
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (els.audio.paused) {
@@ -382,6 +400,18 @@ els.playBtn.addEventListener('click', async () => {
     els.audio.pause();
     setPlayState(false);
   }
+}
+
+els.playBtn.addEventListener('click', togglePlayback);
+
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' && e.key !== ' ' && e.key !== 'Spacebar') return;
+  const ae = document.activeElement;
+  const tag = ae ? ae.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (ae && ae.isContentEditable)) return;
+  if (e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement) return;
+  e.preventDefault();
+  togglePlayback();
 });
 
 els.audio.addEventListener('ended', () => { setPlayState(false); });
