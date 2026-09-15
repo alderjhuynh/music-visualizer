@@ -1,23 +1,11 @@
 {
-  "PIERCE_THE_HEAVENS.mp3": {
-    "title": "Pierce the Heavens",
-    "tag": "do not trust a GOD to deal with matters of the soul"
-  },
-  "RETURN_TO_THE_BEGINNING.mp3": {
-    "title": "Return to the Beginning",
-    "tag": "open your eyes, cast aside your blindfold and see"
-  },
   "OPENING.mp3": {
     "title": "Opening",
     "tag": "grandeur and hubris never stray too far from each other"
   },
-  "SOULFIRE.mp3": {
-    "title": "Soulfire",
-    "tag": "cut through the darkness, dispell it"
-  },
-  "CLOSING.mp3": {
-    "title": "Closing",
-    "tag": "he is upon us, save yourself"
+  "PIERCE_THE_HEAVENS.mp3": {
+    "title": "Pierce the Heavens",
+    "tag": "do not trust a GOD to deal with matters of the soul"
   },
   "DESCENT INTO MADNESS.mp3": {
     "title": "Descent into Madness",
@@ -26,5 +14,17 @@
   "FAME AND FORTUNE.mp3": {
     "title": "Fame and Fortune",
     "tag": "seek something higher, rise above them all"
+  },
+  "RETURN_TO_THE_BEGINNING.mp3": {
+    "title": "Return to the Beginning",
+    "tag": "open your eyes, cast aside your blindfold and see"
+  },
+  "SOULFIRE.mp3": {
+    "title": "Soulfire",
+    "tag": "cut through the darkness, dispell it"
+  },
+  "CLOSING.mp3": {
+    "title": "Closing",
+    "tag": "he is upon us, save yourself"
   }
 }
