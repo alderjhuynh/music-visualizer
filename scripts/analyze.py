@@ -142,7 +142,35 @@ def main():
         print(f"Tracks folder not found: {args.tracks}", file=sys.stderr)
         sys.exit(1)
 
-    mp3s = sorted(f for f in os.listdir(args.tracks) if f.lower().endswith(".mp3"))
+    existing_order = {}
+    for candidate in (os.path.join(args.out, "manifest.json"), os.path.join(ROOT, "manifest.json")):
+        if os.path.exists(candidate):
+            try:
+                with open(candidate) as mf:
+                    prev = json.load(mf)
+                for idx, entry in enumerate(prev):
+                    fname = os.path.basename(entry.get("file", "")) if entry.get("file") else ""
+                    if fname:
+                        existing_order[fname] = idx
+                    if entry.get("title"):
+                        existing_order.setdefault(entry["title"], idx)
+            except Exception:
+                pass
+            break
+
+    mp3s_all = [f for f in os.listdir(args.tracks) if f.lower().endswith(".mp3")]
+
+    if existing_order:
+        def _manifest_sort_key(fname):
+            if fname in existing_order:
+                return (0, existing_order[fname])
+            return (1, fname.lower())
+        mp3s = sorted(mp3s_all, key=_manifest_sort_key)
+    elif overrides:
+        meta_order = {k: i for i, k in enumerate(overrides.keys())}
+        mp3s = sorted(mp3s_all, key=lambda f: (meta_order.get(f, len(meta_order)), f.lower()))
+    else:
+        mp3s = sorted(mp3s_all, key=lambda f: f.lower())
     if not mp3s:
         print(f"No mp3 files found in {args.tracks}. Add some and re-run.", file=sys.stderr)
 
