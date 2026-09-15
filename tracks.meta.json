@@ -6,5 +6,13 @@
   "RETURN_TO_THE_BEGINNING.mp3": {
     "title": "Return to the Beginning",
     "tag": "open your eyes, cast aside your blindfold and see"
+  },
+  "OPENING.mp3": {
+    "title": "Opening",
+    "tag": "grandeur and hubris never stray too far from each other"
+  },
+  "SOULFIRE.mp3": {
+    "title": "Soulfire",
+    "tag": "cut through the darkness, dispell it"
   }
 }
