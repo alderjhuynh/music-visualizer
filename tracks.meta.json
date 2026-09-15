@@ -14,5 +14,17 @@
   "SOULFIRE.mp3": {
     "title": "Soulfire",
     "tag": "cut through the darkness, dispell it"
+  },
+  "CLOSING.mp3": {
+    "title": "Closing",
+    "tag": "he is upon us, save yourself"
+  },
+  "DESCENT INTO MADNESS.mp3": {
+    "title": "Descent into Madness",
+    "tag": "immortality is not a gift"
+  },
+  "FAME AND FORTUNE.mp3": {
+    "title": "Fame and Fortune",
+    "tag": "seek something higher, rise above them all"
   }
 }
