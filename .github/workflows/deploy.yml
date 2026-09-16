@@ -32,12 +32,28 @@ jobs:
         run: |
           mkdir -p dist/tracks
           cp site/*.html site/*.css site/*.js dist/
+          cp albums.json dist/
           if compgen -G "tracks/*.mp3" > /dev/null; then
             cp tracks/*.mp3 dist/tracks/
           fi
+          for dir in albums/*/; do
+            id=$(basename "$dir")
+            mkdir -p "dist/albums/$id/tracks"
+            if compgen -G "${dir}tracks/*.mp3" > /dev/null; then
+              cp "${dir}"tracks/*.mp3 "dist/albums/$id/tracks/"
+            fi
+          done
 
-      - name: Analyze audio -> manifest.json + data/*.json
-        run: python scripts/analyze.py --tracks tracks --out dist
+      - name: Analyze audio -> manifest.json + data/*.json (per album)
+        run: |
+          python scripts/analyze.py --tracks tracks --out dist --meta tracks.meta.json
+          for dir in albums/*/; do
+            id=$(basename "$dir")
+            python scripts/analyze.py \
+              --tracks "${dir}tracks" \
+              --out "dist/albums/$id" \
+              --meta "${dir}tracks.meta.json"
+          done
 
       - uses: actions/upload-pages-artifact@v3
         with:

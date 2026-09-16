@@ -1,6 +1,7 @@
 const els = {
   canvas: document.getElementById('canvas'),
   wave: document.getElementById('waveCanvas'),
+  albumSwitcher: document.getElementById('albumSwitcher'),
   keyLabel: document.getElementById('keyLabel'),
   notesValues: document.getElementById('notesValues'),
   onsetStat: document.getElementById('onsetStat'),
@@ -27,6 +28,8 @@ const waveCtx = els.wave.getContext('2d');
 let audioCtx, sourceNode, analyser, splitter, analyserL, analyserR;
 let freqData, timeData, freqDataL, freqDataR;
 let current = null; // per-track analysis json
+let albums = [];
+let currentAlbum = null; // { id, title, theme, path }
 let manifest = [];
 let marqueeOffset = 0;
 let edgeOffset = 0;
@@ -91,7 +94,7 @@ function resizeCanvases() {
 }
 window.addEventListener('resize', () => {
   resizeCanvases();
-  if (current) {
+  if (current && currentAlbum && currentAlbum.theme !== 'pastoral') {
     edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
     marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
   }
@@ -122,6 +125,50 @@ function ensureAudioGraph() {
   analyser.connect(audioCtx.destination);
 }
 
+// theme transition DONT FUCK THIS UP
+
+function applyTheme(theme) {
+  const isInitial = !document.body.dataset.theme;
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (isInitial || prefersReduced) {
+    document.body.dataset.theme = theme;
+    return Promise.resolve();
+  }
+  if (document.startViewTransition) {
+    try {
+      const vt = document.startViewTransition(() => {
+        document.body.dataset.theme = theme;
+      });
+      return vt.finished.catch(() => {});
+    } catch (_) {
+    }
+  }
+  return new Promise((resolve) => {
+    const c = els.canvas;
+    const prev = c.style.transition;
+    c.style.transition = 'opacity 220ms ease';
+    c.style.opacity = '0.18';
+    setTimeout(() => {
+      document.body.dataset.theme = theme;
+      requestAnimationFrame(() => {
+        c.style.opacity = '1';
+        setTimeout(() => {
+          c.style.transition = prev;
+          if (!c.style.transition) c.style.removeProperty('transition');
+          c.style.removeProperty('opacity');
+          resolve();
+        }, 380);
+      });
+    }, 220);
+  });
+}
+
+function albumFromUrl() {
+  const requested = new URLSearchParams(window.location.search).get('album');
+  if (!requested) return albums[0];
+  return albums.find((a) => a.id === requested) || albums[0];
+}
+
 function trackIndexFromUrl() {
   const requested = new URLSearchParams(window.location.search).get('track');
   if (!requested) return 0;
@@ -129,9 +176,43 @@ function trackIndexFromUrl() {
   return idx >= 0 ? idx : 0;
 }
 
-async function loadManifest() {
-  const res = await fetch('manifest.json');
+async function loadAlbums() {
+  const res = await fetch('albums.json');
+  albums = await res.json();
+  renderAlbumSwitcher();
+  const album = albumFromUrl();
+  await switchAlbum(album, { updateUrl: false, initialTrack: trackIndexFromUrl() });
+}
+
+function renderAlbumSwitcher() {
+  els.albumSwitcher.innerHTML = '';
+  if (albums.length < 2) return; // nothing to switch between yet
+  albums.forEach((a) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = a.title;
+    btn.classList.toggle('active', currentAlbum && a.id === currentAlbum.id);
+    btn.addEventListener('click', () => {
+      if (currentAlbum && a.id === currentAlbum.id) return;
+      switchAlbum(a, { updateUrl: true, initialTrack: 0 });
+    });
+    els.albumSwitcher.appendChild(btn);
+  });
+}
+
+async function switchAlbum(album, { updateUrl = false, initialTrack = 0 } = {}) {
+  const wasPlaying = !!(audioCtx && !els.audio.paused);
+  if (wasPlaying) els.audio.pause();
+  setPlayState(false);
+
+  currentAlbum = album;
+  await applyTheme(album.theme);
+  document.title = album.title;
+  [...els.albumSwitcher.children].forEach((b, i) => b.classList.toggle('active', albums[i].id === album.id));
+
+  const res = await fetch(`${album.path}manifest.json`);
   manifest = await res.json();
+
   els.tracklist.innerHTML = '';
   manifest.forEach((track, i) => {
     const btn = document.createElement('button');
@@ -139,7 +220,30 @@ async function loadManifest() {
     btn.addEventListener('click', () => selectTrack(i, { updateUrl: true }));
     els.tracklist.appendChild(btn);
   });
-  if (manifest.length) selectTrack(trackIndexFromUrl());
+
+  if (updateUrl) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('album', album.id);
+    url.searchParams.delete('track');
+    history.pushState({ album: album.id }, '', url);
+  }
+
+  if (manifest.length) {
+    await selectTrack(Math.min(initialTrack, manifest.length - 1), { updateUrl: false });
+  } else {
+    current = null;
+    const isPastoralEmpty = album.theme === 'pastoral';
+    els.keyLabel.textContent = isPastoralEmpty ? album.title : 'more soon';
+    els.notesValues.textContent = '\u2014';
+    if (isPastoralEmpty) {
+      els.edgeRight.textContent = '';
+      els.marquee.textContent = '';
+    } else {
+      edgeUnitHeight = buildLoopedText(els.edgeRight, `${album.title}  \u2014  `, true);
+      marqueeUnitWidth = buildLoopedText(els.marquee, 'tracks coming soon   \u2014   ', false);
+    }
+    waveCtx.clearRect(0, 0, els.wave.width, els.wave.height);
+  }
 }
 
 async function selectTrack(index, { updateUrl = false, autoplay = false } = {}) {
@@ -148,19 +252,26 @@ async function selectTrack(index, { updateUrl = false, autoplay = false } = {}) 
   const track = manifest[index];
   [...els.tracklist.children].forEach((b, i) => b.classList.toggle('active', i === index));
 
-  const res = await fetch(track.data);
+  const res = await fetch(`${currentAlbum.path}${track.data}`);
   current = await res.json();
 
-  els.audio.src = track.file;
-  els.keyLabel.textContent = current.key;
-  edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
-  marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
+  els.audio.src = `${currentAlbum.path}${track.file}`;
+  const isPastoral = currentAlbum && currentAlbum.theme === 'pastoral';
+  els.keyLabel.textContent = isPastoral ? current.title : current.key;
+  if (isPastoral) {
+    els.edgeRight.textContent = '';
+    els.marquee.textContent = '';
+  } else {
+    edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
+    marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
+  }
   drawWaveformOverview(els.audio.currentTime || 0, current.duration);
 
   if (updateUrl) {
     const url = new URL(window.location.href);
+    url.searchParams.set('album', currentAlbum.id);
     url.searchParams.set('track', track.id);
-    history.pushState({ track: track.id }, '', url);
+    history.pushState({ album: currentAlbum.id, track: track.id }, '', url);
   }
 
   if (autoplay || wasPlaying) {
@@ -186,8 +297,13 @@ function nextTrackIndex() {
 }
 
 window.addEventListener('popstate', () => {
-  if (!manifest.length) return;
-  selectTrack(trackIndexFromUrl());
+  if (!albums.length) return;
+  const album = albumFromUrl();
+  if (!currentAlbum || album.id !== currentAlbum.id) {
+    switchAlbum(album, { updateUrl: false, initialTrack: trackIndexFromUrl() });
+  } else if (manifest.length) {
+    selectTrack(trackIndexFromUrl());
+  }
 });
 
 function drawWaveformOverview(t, dur) {
@@ -202,6 +318,8 @@ function drawWaveformOverview(t, dur) {
   const pxPerSec = w / windowSec;
   const startTime = t - windowSec / 2;
   const step = 2;
+  const ink = getComputedStyle(document.body).getPropertyValue('--ink').trim() || '#f2f1ec';
+  const inkRgb = hexToRgbTriplet(ink);
 
   for (let x = 0; x < w; x += step) {
     const timeAtX = startTime + x / pxPerSec;
@@ -210,17 +328,30 @@ function drawWaveformOverview(t, dur) {
     const p = peaks[idx];
     const barH = Math.max(1, p * h * 0.92);
     const played = timeAtX <= t;
-    waveCtx.fillStyle = played ? 'rgba(242,241,236,0.9)' : 'rgba(242,241,236,0.32)';
+    waveCtx.fillStyle = played ? `rgba(${inkRgb},0.9)` : `rgba(${inkRgb},0.32)`;
     waveCtx.fillRect(x, (h - barH) / 2, step, barH);
   }
 
   const playheadX = w / 2;
-  waveCtx.strokeStyle = 'rgba(242,241,236,0.95)';
+  waveCtx.strokeStyle = `rgba(${inkRgb},0.95)`;
   waveCtx.lineWidth = 2;
   waveCtx.beginPath();
   waveCtx.moveTo(playheadX, 0);
   waveCtx.lineTo(playheadX, h);
   waveCtx.stroke();
+}
+
+function hexToRgbTriplet(hex) {
+  const m = hex.replace('#', '').trim();
+  if (m.length === 3) {
+    const r = parseInt(m[0] + m[0], 16), g = parseInt(m[1] + m[1], 16), b = parseInt(m[2] + m[2], 16);
+    return `${r},${g},${b}`;
+  }
+  if (m.length === 6) {
+    const r = parseInt(m.slice(0, 2), 16), g = parseInt(m.slice(2, 4), 16), b = parseInt(m.slice(4, 6), 16);
+    return `${r},${g},${b}`;
+  }
+  return '242,241,236';
 }
 
 function countUpTo(arr, t) {
@@ -232,7 +363,9 @@ function countUpTo(arr, t) {
   return lo;
 }
 
-function drawBackground(t, bass, mid, treble) {
+// impact
+
+function drawBackgroundImpact(t, bass, mid, treble) {
   const w = els.canvas.width, h = els.canvas.height;
   ctx2d.clearRect(0, 0, w, h);
   ctx2d.strokeStyle = 'rgba(242,241,236,0.5)';
@@ -260,7 +393,7 @@ function drawBackground(t, bass, mid, treble) {
   ctx2d.globalAlpha = 1;
   ctx2d.lineWidth = 1;
 
-  // big rotate-y arcs 
+  // big rotate-y arcs
   const acx = w * 0.87, acy = h * 0.15;
   const rings = 34;
   for (let i = 0; i < rings; i++) {
@@ -311,11 +444,71 @@ function drawBackground(t, bass, mid, treble) {
   ctx2d.stroke();
 }
 
+// pastoral
+
+function drawBackgroundPastoral(t, bass, mid, treble) {
+  const w = els.canvas.width, h = els.canvas.height;
+  ctx2d.clearRect(0, 0, w, h);
+
+  // wash
+  const wash = ctx2d.createLinearGradient(0, 0, 0, h);
+  wash.addColorStop(0, 'rgba(154,107,58,0.05)');
+  wash.addColorStop(1, 'rgba(122,84,44,0.16)');
+  ctx2d.fillStyle = wash;
+  ctx2d.fillRect(0, 0, w, h);
+
+  // sun
+  const sunX = w * 0.82, sunY = h * 0.2;
+  const rings = 11;
+  const bassPulse = 0.72 + bass * 0.85;
+  for (let i = 0; i < rings; i++) {
+    const radBase = (w * 0.018) + i * (w * 0.021);
+    const wobble = Math.sin(t * 0.12 + i * 0.6) * (2 + mid * 10);
+    const rad = Math.max(1, radBase * bassPulse + wobble);
+    ctx2d.globalAlpha = 0.5 - (i / rings) * 0.42;
+    ctx2d.strokeStyle = 'rgba(184,138,74,0.95)';
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    ctx2d.arc(sunX, sunY, rad, 0, Math.PI * 2);
+    ctx2d.stroke();
+  }
+  // sun core
+  const coreBase = w * 0.012;
+  const coreR = Math.max(1, coreBase * bassPulse);
+  ctx2d.globalAlpha = 0.18 + bass * 0.32;
+  ctx2d.fillStyle = 'rgba(212,168,102,0.9)';
+  ctx2d.beginPath();
+  ctx2d.arc(sunX, sunY, coreR * 2.6, 0, Math.PI * 2);
+  ctx2d.fill();
+  ctx2d.globalAlpha = Math.min(0.95, 0.55 + treble * 0.3 + bass * 0.18);
+  ctx2d.fillStyle = 'rgba(212,168,102,0.95)';
+  ctx2d.beginPath();
+  ctx2d.arc(sunX, sunY, coreR, 0, Math.PI * 2);
+  ctx2d.fill();
+  ctx2d.globalAlpha = 1;
+
+  // rolling hill horizons
+  const baseY = h * 0.7;
+  for (let i = 0; i < 3; i++) {
+    const amp = (10 + treble * 34) * (1 - i * 0.28);
+    const yOff = baseY + i * h * 0.07;
+    ctx2d.strokeStyle = `rgba(43,36,24,${0.4 - i * 0.1})`;
+    ctx2d.lineWidth = 1.4;
+    ctx2d.beginPath();
+    for (let x = 0; x <= w; x += 6) {
+      const y = yOff + Math.sin(x * 0.0032 + t * (0.08 + i * 0.02) + i * 2.1) * amp;
+      if (x === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+    }
+    ctx2d.stroke();
+  }
+}
+
 function drawLiveWaveOverlay() {
   if (!analyser) return;
   analyser.getByteTimeDomainData(timeData);
   const w = els.wave.width, h = els.wave.height;
-  waveCtx.strokeStyle = 'rgba(242,241,236,0.9)';
+  const ink = getComputedStyle(document.body).getPropertyValue('--ink').trim() || '#f2f1ec';
+  waveCtx.strokeStyle = `rgba(${hexToRgbTriplet(ink)},0.9)`;
   waveCtx.lineWidth = 1.5;
   waveCtx.beginPath();
   const slice = w / timeData.length;
@@ -356,7 +549,12 @@ function tick() {
     mid = bandAverage(freqData, 0.08, 0.35);
     treble = bandAverage(freqData, 0.35, 0.9);
   }
-  drawBackground(performance.now() / 1000, bass, mid, treble);
+  const theme = currentAlbum ? currentAlbum.theme : 'impact';
+  if (theme === 'pastoral') {
+    drawBackgroundPastoral(performance.now() / 1000, bass, mid, treble);
+  } else {
+    drawBackgroundImpact(performance.now() / 1000, bass, mid, treble);
+  }
 
   if (current) {
     drawWaveformOverview(t, dur);
@@ -397,16 +595,18 @@ function tick() {
     els.meterR.style.setProperty('--level', `${Math.min(100, rvl * 100)}%`);
   }
 
-  // marquee
-  marqueeOffset -= 0.6;
-  const width = marqueeUnitWidth || 1;
-  if (-marqueeOffset > width) marqueeOffset += width;
-  els.marquee.style.transform = `translateX(${marqueeOffset}px)`;
+  // hide marquee in pastoral
+  if (theme !== 'pastoral') {
+    marqueeOffset -= 0.6;
+    const width = marqueeUnitWidth || 1;
+    if (-marqueeOffset > width) marqueeOffset += width;
+    els.marquee.style.transform = `translateX(${marqueeOffset}px)`;
 
-  edgeOffset -= 0.5;
-  const edgeSpan = edgeUnitHeight || 1;
-  if (-edgeOffset > edgeSpan) edgeOffset += edgeSpan;
-  els.edgeRight.style.transform = `translateY(${edgeOffset}px)`;
+    edgeOffset -= 0.5;
+    const edgeSpan = edgeUnitHeight || 1;
+    if (-edgeOffset > edgeSpan) edgeOffset += edgeSpan;
+    els.edgeRight.style.transform = `translateY(${edgeOffset}px)`;
+  }
 }
 
 const PLAY_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M8 5.14v14l11-7z"></path></svg>';
@@ -443,6 +643,7 @@ els.modeBtn.addEventListener('click', cycleMode);
 setModeState();
 
 async function togglePlayback() {
+  if (!manifest.length) return;
   ensureAudioGraph();
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (els.audio.paused) {
@@ -479,5 +680,5 @@ els.audio.addEventListener('ended', () => {
 });
 
 resizeCanvases();
-loadManifest();
+loadAlbums();
 tick();

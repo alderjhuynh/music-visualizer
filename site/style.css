@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
 
 :root{
   --ink:      #f2f1ec;
@@ -11,6 +11,18 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
+/* distant horizons */
+body[data-theme="pastoral"]{
+  --ink:      #2b2418;
+  --ink-dim:  #7d715a;
+  --void:     #f3ead9;
+  --swatch:   #b9925a;
+  --line:     rgba(43,36,24,0.55);
+  --line-dim: rgba(43,36,24,0.18);
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-mono: 'EB Garamond', Georgia, 'Times New Roman', serif;
+}
+
 *{ box-sizing: border-box; }
 
 html{
@@ -19,12 +31,31 @@ html{
 html, body{
   margin:0; padding:0; height:100%;
   min-height: -webkit-fill-available;
+  background-color: var(--void);
   background: var(--void);
   color: var(--ink);
   font-family: var(--font-mono);
   overflow: hidden;
 }
-/* Use dynamic viewport units so mobile browser chrome doesn't obscure bottom */
+
+/* trans */
+@media (prefers-reduced-motion: no-preference){
+  html, body{
+    transition: background 650ms cubic-bezier(0.4,0,0.2,1), background-color 650ms cubic-bezier(0.4,0,0.2,1), color 650ms cubic-bezier(0.4,0,0.2,1);
+  }
+  /* view transition api */
+  ::view-transition-old(root),
+  ::view-transition-new(root){
+    animation-duration: 650ms;
+    animation-timing-function: cubic-bezier(0.4,0,0.2,1);
+    animation-name: theme-cross-fade;
+  }
+  @keyframes theme-cross-fade{
+    from{ opacity: 1; }
+    to{ opacity: 1; }
+  }
+}
+
 @supports (height: 100dvh){
   html, body{
     height: 100dvh;
@@ -42,11 +73,19 @@ html, body{
   transform: rotate(-3deg);
   transform-origin: center center;
 }
+@media (prefers-reduced-motion: no-preference){
+  .stage{
+    transition: transform 700ms cubic-bezier(0.4,0,0.2,1);
+  }
+}
 @supports (height: 100dvh){
   .stage{
     height: 100dvh;
     min-height: max(480px, 100dvh);
   }
+}
+body[data-theme="pastoral"] .stage{
+  transform: none;
 }
 
 canvas#canvas{
@@ -55,6 +94,11 @@ canvas#canvas{
   width: 100%;
   height: 100%;
   display: block;
+}
+@media (prefers-reduced-motion: no-preference){
+  canvas#canvas{
+    transition: opacity 380ms ease, filter 650ms ease;
+  }
 }
 
 .edge{
@@ -86,12 +130,21 @@ canvas#canvas{
   white-space: nowrap;
   will-change: transform;
 }
+body[data-theme="pastoral"] .edge-right-track,
+body[data-theme="pastoral"] .edge-left{
+  font-family: var(--font-mono);
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+body[data-theme="pastoral"] .edge-right,
+body[data-theme="pastoral"] .marquee-wrap{
+  display: none;
+}
 
 .hud{
   position: absolute;
   inset: 0;
   padding: clamp(16px, 4vw, 48px) clamp(40px, 6vw, 72px);
-  /* lift bottom above angled stage edge + iOS home indicator */
   padding-bottom: calc(clamp(16px, 4vw, 48px) + env(safe-area-inset-bottom, 0px) + 8px);
   display: flex;
   flex-direction: column;
@@ -104,12 +157,50 @@ canvas#canvas{
 
 .hud-top{ max-width: 640px; }
 
+.album-switcher{
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.album-switcher:empty{ display: none; margin-bottom: 0; }
+.album-switcher button{
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0 0 3px;
+  border-bottom: 1px solid transparent;
+}
+.album-switcher button.active{
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+body[data-theme="pastoral"] .album-switcher{
+  text-transform: none;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  font-size: 13px;
+  gap: 20px;
+}
+
 .key-label{
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(28px, 4vw, 44px);
   line-height: 1;
   letter-spacing: -0.01em;
+}
+body[data-theme="pastoral"] .key-label{
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0;
 }
 
 .notes-row{
@@ -126,6 +217,9 @@ canvas#canvas{
   width: 12px; height: 12px;
   background: var(--swatch);
   display: inline-block;
+}
+body[data-theme="pastoral"] .swatch{
+  border-radius: 50%;
 }
 
 .hud-stats{
@@ -186,6 +280,9 @@ canvas#canvas{
   background: var(--ink);
   transition: height 60ms linear;
 }
+body[data-theme="pastoral"] .meter-bar{
+  border-radius: 3px;
+}
 
 .counters{
   display: flex;
@@ -197,6 +294,10 @@ canvas#canvas{
 .counter-label{ color: var(--ink-dim); font-size: 10px; text-transform: lowercase; }
 .counter-value{ font-size: 15px; }
 .time-block{ margin-left: 6px; }
+body[data-theme="pastoral"] .counter-value{
+  font-family: var(--font-display);
+  font-style: italic;
+}
 
 .waveform-wrap{
   flex: 1;
@@ -220,6 +321,10 @@ canvas#waveCanvas{
   width: 0%;
   background: var(--ink);
 }
+body[data-theme="pastoral"] .progress-track,
+body[data-theme="pastoral"] .progress-fill{
+  border-radius: 2px;
+}
 .time-readout{
   align-self: center;
   font-size: 12px;
@@ -239,6 +344,10 @@ canvas#waveCanvas{
   font-size: clamp(16px, 2.4vw, 22px);
   color: var(--ink);
   will-change: transform;
+}
+body[data-theme="pastoral"] .marquee{
+  font-style: italic;
+  font-weight: 500;
 }
 
 .transport{
@@ -297,6 +406,9 @@ canvas#waveCanvas{
   color: var(--ink);
   border-bottom-color: var(--ink);
 }
+body[data-theme="pastoral"] .tracklist button{
+  font-style: italic;
+}
 
 .invert-corner{
   position: absolute;
@@ -305,9 +417,55 @@ canvas#waveCanvas{
   mix-blend-mode: difference;
   pointer-events: none;
   z-index: 6;
+  opacity: 1;
+  visibility: visible;
 }
 .invert-tr{ clip-path: polygon(46% 0%, 100% 0%, 100% 62%); }
 .invert-bl{ clip-path: polygon(0% 76%, 40% 100%, 0% 100%); }
+@media (prefers-reduced-motion: no-preference){
+  .invert-corner{
+    transition: opacity 650ms ease, visibility 650ms ease;
+  }
+}
+body[data-theme="pastoral"] .invert-corner{
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference){
+  .edge,
+  .key-label,
+  .notes-row,
+  .notes-values,
+  .swatch,
+  .hud-stats,
+  .meter-bar,
+  .meter-track,
+  .meter-labels,
+  .counter-label,
+  .counter-value,
+  .progress-track,
+  .progress-fill,
+  .time-readout,
+  .marquee,
+  .circle-btn,
+  .tracklist button,
+  .album-switcher button,
+  .album-switcher,
+  .edge-right-track{
+    transition: color 650ms ease, background-color 650ms ease, border-color 650ms ease, background 650ms ease, opacity 650ms ease;
+  }
+  .swatch{
+    transition: background-color 650ms ease, border-radius 650ms ease, opacity 650ms ease;
+  }
+  .meter-bar::after{
+    transition: height 60ms linear, background-color 650ms ease;
+  }
+  .circle-btn:hover,
+  #modeBtn.mode-active{
+    transition: background-color 650ms ease, color 650ms ease, border-color 650ms ease;
+  }
+}
 
 @media (max-width: 720px){
   .stage{
@@ -315,6 +473,9 @@ canvas#waveCanvas{
     height: 100svh;
     height: 100dvh;
     min-height: 100dvh;
+  }
+  body[data-theme="pastoral"] .stage{
+    transform: none;
   }
   .hud{
     padding: 14px 40px;
@@ -347,6 +508,7 @@ canvas#waveCanvas{
 
 @media (max-width: 480px){
   .stage{ transform: rotate(-1.2deg) scale(0.97); }
+  body[data-theme="pastoral"] .stage{ transform: none; }
   .hud{ padding-left: 32px; padding-right: 32px; }
 }
 
