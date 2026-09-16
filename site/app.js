@@ -658,6 +658,22 @@ async function togglePlayback() {
 els.playBtn.addEventListener('click', togglePlayback);
 
 window.addEventListener('keydown', (e) => {
+  // left/right → switch albums
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+    if (albums.length < 2 || !currentAlbum) return;
+    const ae = document.activeElement;
+    const tag = ae ? ae.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (ae && ae.isContentEditable)) return;
+    e.preventDefault();
+    const idx = albums.findIndex(a => a.id === currentAlbum.id);
+    if (idx < 0) return;
+    const nextIdx = e.key === 'ArrowRight'
+      ? (idx + 1) % albums.length
+      : (idx - 1 + albums.length) % albums.length;
+    if (nextIdx !== idx) switchAlbum(albums[nextIdx], { updateUrl: true, initialTrack: 0 });
+    return;
+  }
+
   if (e.code !== 'Space' && e.key !== ' ' && e.key !== 'Spacebar') return;
   const ae = document.activeElement;
   const tag = ae ? ae.tagName : '';
