@@ -94,7 +94,7 @@ function resizeCanvases() {
 }
 window.addEventListener('resize', () => {
   resizeCanvases();
-  if (current && currentAlbum && currentAlbum.theme !== 'pastoral') {
+  if (current && currentAlbum && currentAlbum.theme !== 'desert') {
     edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
     marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
   }
@@ -125,19 +125,32 @@ function ensureAudioGraph() {
   analyser.connect(audioCtx.destination);
 }
 
+function syncAuraeaLinks(theme){
+  document.querySelectorAll('a[href*="auraea.fyi"]').forEach((a) => {
+    try{
+      const url = new URL(a.href);
+      url.searchParams.set('theme', theme);
+      a.href = url.toString();
+    } catch {}
+  });
+}
+
 // theme transition DONT FUCK THIS UP
 
 function applyTheme(theme) {
+  const doSync = () => syncAuraeaLinks(theme);
   const isInitial = !document.body.dataset.theme;
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (isInitial || prefersReduced) {
     document.body.dataset.theme = theme;
+    doSync();
     return Promise.resolve();
   }
   if (document.startViewTransition) {
     try {
       const vt = document.startViewTransition(() => {
         document.body.dataset.theme = theme;
+        doSync();
       });
       return vt.finished.catch(() => {});
     } catch (_) {
@@ -150,6 +163,7 @@ function applyTheme(theme) {
     c.style.opacity = '0.18';
     setTimeout(() => {
       document.body.dataset.theme = theme;
+      doSync();
       requestAnimationFrame(() => {
         c.style.opacity = '1';
         setTimeout(() => {
@@ -232,10 +246,10 @@ async function switchAlbum(album, { updateUrl = false, initialTrack = 0 } = {}) 
     await selectTrack(Math.min(initialTrack, manifest.length - 1), { updateUrl: false });
   } else {
     current = null;
-    const isPastoralEmpty = album.theme === 'pastoral';
-    els.keyLabel.textContent = isPastoralEmpty ? album.title : 'more soon';
+    const isDesertEmpty = album.theme === 'desert';
+    els.keyLabel.textContent = isDesertEmpty ? album.title : 'more soon';
     els.notesValues.textContent = '\u2014';
-    if (isPastoralEmpty) {
+    if (isDesertEmpty) {
       els.edgeRight.textContent = '';
       els.marquee.textContent = '';
     } else {
@@ -256,9 +270,9 @@ async function selectTrack(index, { updateUrl = false, autoplay = false } = {}) 
   current = await res.json();
 
   els.audio.src = `${currentAlbum.path}${track.file}`;
-  const isPastoral = currentAlbum && currentAlbum.theme === 'pastoral';
-  els.keyLabel.textContent = isPastoral ? current.title : current.key;
-  if (isPastoral) {
+  const isDesert = currentAlbum && currentAlbum.theme === 'desert';
+  els.keyLabel.textContent = isDesert ? current.title : current.key;
+  if (isDesert) {
     els.edgeRight.textContent = '';
     els.marquee.textContent = '';
   } else {
@@ -444,9 +458,9 @@ function drawBackgroundImpact(t, bass, mid, treble) {
   ctx2d.stroke();
 }
 
-// pastoral
+// desert
 
-function drawBackgroundPastoral(t, bass, mid, treble) {
+function drawBackgroundDesert(t, bass, mid, treble) {
   const w = els.canvas.width, h = els.canvas.height;
   ctx2d.clearRect(0, 0, w, h);
 
@@ -550,8 +564,8 @@ function tick() {
     treble = bandAverage(freqData, 0.35, 0.9);
   }
   const theme = currentAlbum ? currentAlbum.theme : 'impact';
-  if (theme === 'pastoral') {
-    drawBackgroundPastoral(performance.now() / 1000, bass, mid, treble);
+  if (theme === 'desert') {
+    drawBackgroundDesert(performance.now() / 1000, bass, mid, treble);
   } else {
     drawBackgroundImpact(performance.now() / 1000, bass, mid, treble);
   }
@@ -595,8 +609,8 @@ function tick() {
     els.meterR.style.setProperty('--level', `${Math.min(100, rvl * 100)}%`);
   }
 
-  // hide marquee in pastoral
-  if (theme !== 'pastoral') {
+  // hide marquee in desert
+  if (theme !== 'desert') {
     marqueeOffset -= 0.6;
     const width = marqueeUnitWidth || 1;
     if (-marqueeOffset > width) marqueeOffset += width;
