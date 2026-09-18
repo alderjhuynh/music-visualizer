@@ -94,9 +94,12 @@ function resizeCanvases() {
 }
 window.addEventListener('resize', () => {
   resizeCanvases();
-  if (current && currentAlbum && currentAlbum.theme !== 'desert') {
-    edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
-    marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
+  if (current && currentAlbum) {
+    const t = currentAlbum.theme;
+    const hideEdge = t === 'desert';
+    const hideMarquee = t === 'desert' || t === 'rave' || t === 'dance';
+    if (!hideEdge) edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
+    if (!hideMarquee) marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
   }
 });
 
@@ -247,15 +250,13 @@ async function switchAlbum(album, { updateUrl = false, initialTrack = 0 } = {}) 
   } else {
     current = null;
     const isDesertEmpty = album.theme === 'desert';
+    const hideMarqueeEmpty = album.theme === 'desert' || album.theme === 'rave' || album.theme === 'dance';
     els.keyLabel.textContent = isDesertEmpty ? album.title : 'more soon';
     els.notesValues.textContent = '\u2014';
-    if (isDesertEmpty) {
-      els.edgeRight.textContent = '';
-      els.marquee.textContent = '';
-    } else {
-      edgeUnitHeight = buildLoopedText(els.edgeRight, `${album.title}  \u2014  `, true);
-      marqueeUnitWidth = buildLoopedText(els.marquee, 'tracks coming soon   \u2014   ', false);
-    }
+    if (isDesertEmpty) els.edgeRight.textContent = '';
+    else edgeUnitHeight = buildLoopedText(els.edgeRight, `${album.title}  \u2014  `, true);
+    if (hideMarqueeEmpty) els.marquee.textContent = '';
+    else marqueeUnitWidth = buildLoopedText(els.marquee, 'tracks coming soon   \u2014   ', false);
     waveCtx.clearRect(0, 0, els.wave.width, els.wave.height);
   }
 }
@@ -271,14 +272,12 @@ async function selectTrack(index, { updateUrl = false, autoplay = false } = {}) 
 
   els.audio.src = `${currentAlbum.path}${track.file}`;
   const isDesert = currentAlbum && currentAlbum.theme === 'desert';
+  const hideMarqueeTrack = currentAlbum && (currentAlbum.theme === 'desert' || currentAlbum.theme === 'rave' || currentAlbum.theme === 'dance');
   els.keyLabel.textContent = isDesert ? current.title : current.key;
-  if (isDesert) {
-    els.edgeRight.textContent = '';
-    els.marquee.textContent = '';
-  } else {
-    edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
-    marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
-  }
+  if (isDesert) els.edgeRight.textContent = '';
+  else edgeUnitHeight = buildLoopedText(els.edgeRight, `${current.title}  \u2014  `, true);
+  if (hideMarqueeTrack) els.marquee.textContent = '';
+  else marqueeUnitWidth = buildLoopedText(els.marquee, `${current.tag}   \u2014   `, false);
   drawWaveformOverview(els.audio.currentTime || 0, current.duration);
 
   if (updateUrl) {
@@ -642,7 +641,7 @@ function tick() {
   const theme = currentAlbum ? currentAlbum.theme : 'impact';
   if (theme === 'desert') {
     drawBackgroundDesert(performance.now() / 1000, bass, mid, treble);
-  } else if (theme === 'rave') {
+  } else if (theme === 'rave' || theme === 'dance') {
     drawBackgroundRave(performance.now() / 1000, bass, mid, treble);
   } else {
     drawBackgroundImpact(performance.now() / 1000, bass, mid, treble);
@@ -687,13 +686,16 @@ function tick() {
     els.meterR.style.setProperty('--level', `${Math.min(100, rvl * 100)}%`);
   }
 
-  // hide marquee in desert
-  if (theme !== 'desert') {
+  // hide marquee in desert + dance (rave)
+  const hideMarqueeTick = theme === 'desert' || theme === 'rave' || theme === 'dance';
+  const hideEdgeTick = theme === 'desert';
+  if (!hideMarqueeTick) {
     marqueeOffset -= 0.6;
     const width = marqueeUnitWidth || 1;
     if (-marqueeOffset > width) marqueeOffset += width;
     els.marquee.style.transform = `translateX(${marqueeOffset}px)`;
-
+  }
+  if (!hideEdgeTick) {
     edgeOffset -= 0.5;
     const edgeSpan = edgeUnitHeight || 1;
     if (-edgeOffset > edgeSpan) edgeOffset += edgeSpan;

@@ -160,6 +160,10 @@ body[data-theme="desert"] .edge-right,
 body[data-theme="desert"] .marquee-wrap{
   display: none;
 }
+body[data-theme="rave"] .marquee-wrap,
+body[data-theme="dance"] .marquee-wrap{
+  display: none;
+}
 
 .hud{
   position: absolute;
@@ -487,6 +491,11 @@ body[data-theme="desert"] .tracklist button{
   }
 }
 body[data-theme="desert"] .invert-corner{
+  opacity: 0;
+  visibility: hidden;
+}
+body[data-theme="rave"] .invert-corner,
+body[data-theme="dance"] .invert-corner{
   opacity: 0;
   visibility: hidden;
 }
