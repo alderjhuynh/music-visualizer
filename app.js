@@ -517,6 +517,82 @@ function drawBackgroundDesert(t, bass, mid, treble) {
   }
 }
 
+// dance!
+
+function drawBackgroundRave(t, bass, mid, treble) {
+  const w = els.canvas.width, h = els.canvas.height;
+  ctx2d.clearRect(0, 0, w, h);
+
+  // bkg wash
+  const cx = w * 0.5, cy = h * 0.42;
+  const wash = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, w * 0.75);
+  wash.addColorStop(0, 'rgba(46,10,66,0.4)');
+  wash.addColorStop(1, 'rgba(7,4,15,0)');
+  ctx2d.fillStyle = wash;
+  ctx2d.fillRect(0, 0, w, h);
+
+  // the rings
+  const ringCount = 5;
+  for (let i = 0; i < ringCount; i++) {
+    const phase = (t * 0.35 + i / ringCount) % 1;
+    const rad = phase * w * 0.62 * (0.85 + bass * 0.55);
+    const alpha = (1 - phase) * (0.45 + bass * 0.5);
+    ctx2d.globalAlpha = Math.max(0, alpha);
+    ctx2d.strokeStyle = i % 2 === 0 ? 'rgba(255,46,230,0.9)' : 'rgba(0,229,255,0.9)';
+    ctx2d.lineWidth = 2 + bass * 4;
+    ctx2d.beginPath();
+    ctx2d.arc(cx, cy, Math.max(1, rad), 0, Math.PI * 2);
+    ctx2d.stroke();
+  }
+  ctx2d.globalAlpha = 1;
+
+  // floor
+  const horizonY = h * 0.6;
+  const vpX = w * 0.5;
+  const cols = 14;
+  for (let i = 0; i <= cols; i++) {
+    const xBottom = (i / cols) * w;
+    const xTop = vpX + (xBottom - vpX) * 0.08;
+    const grad = ctx2d.createLinearGradient(xTop, horizonY, xBottom, h);
+    grad.addColorStop(0, 'rgba(0,229,255,0.05)');
+    grad.addColorStop(1, `rgba(255,46,230,${0.12 + mid * 0.28})`);
+    ctx2d.strokeStyle = grad;
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    ctx2d.moveTo(xTop, horizonY);
+    ctx2d.lineTo(xBottom, h);
+    ctx2d.stroke();
+  }
+  const rows = 8;
+  const crawl = (t * 0.35 * (1 + treble * 0.6)) % 1;
+  for (let j = 0; j < rows; j++) {
+    const rowT = ((j / rows) + crawl) % 1;
+    const eased = rowT * rowT; // bunch lines near the horizon
+    const y = horizonY + eased * (h - horizonY);
+    ctx2d.globalAlpha = 0.12 + (1 - rowT) * 0.22 + treble * 0.15;
+    ctx2d.strokeStyle = 'rgba(0,229,255,0.6)';
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    ctx2d.moveTo(0, y);
+    ctx2d.lineTo(w, y);
+    ctx2d.stroke();
+  }
+  ctx2d.globalAlpha = 1;
+
+  // beam ahh
+  ctx2d.save();
+  ctx2d.translate(cx, h * 0.05);
+  ctx2d.rotate(Math.sin(t * 0.6) * 0.5);
+  ctx2d.globalAlpha = 0.1 + treble * 0.3;
+  const beamGrad = ctx2d.createLinearGradient(0, 0, 0, h);
+  beamGrad.addColorStop(0, 'rgba(255,255,255,0.8)');
+  beamGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx2d.fillStyle = beamGrad;
+  ctx2d.fillRect(-w * 0.018, 0, w * 0.036, h);
+  ctx2d.restore();
+  ctx2d.globalAlpha = 1;
+}
+
 function drawLiveWaveOverlay() {
   if (!analyser) return;
   analyser.getByteTimeDomainData(timeData);
@@ -566,6 +642,8 @@ function tick() {
   const theme = currentAlbum ? currentAlbum.theme : 'impact';
   if (theme === 'desert') {
     drawBackgroundDesert(performance.now() / 1000, bass, mid, treble);
+  } else if (theme === 'rave') {
+    drawBackgroundRave(performance.now() / 1000, bass, mid, treble);
   } else {
     drawBackgroundImpact(performance.now() / 1000, bass, mid, treble);
   }

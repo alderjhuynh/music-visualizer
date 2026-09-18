@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Orbitron:wght@600;800&display=swap');
 
 :root{
   --ink:      #f2f1ec;
@@ -9,6 +9,20 @@
   --line-dim: rgba(242,241,236,0.28);
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --accent:   transparent;
+}
+
+/* dance! */
+body[data-theme="rave"]{
+  --ink:      #f3f6ff;
+  --ink-dim:  #8d8fc7;
+  --void:     #07040f;
+  --swatch:   #ff2ee6;
+  --line:     rgba(0,229,255,0.55);
+  --line-dim: rgba(0,229,255,0.16);
+  --font-display: 'Orbitron', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --accent:   #00e5ff;
 }
 
 /* distant horizons */
@@ -209,6 +223,12 @@ body[data-theme="desert"] .key-label{
   letter-spacing: 0;
 }
 
+body[data-theme="rave"] .key-label{
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .notes-row{
   margin-top: 10px;
   display: flex;
@@ -226,6 +246,12 @@ body[data-theme="desert"] .key-label{
 }
 body[data-theme="desert"] .swatch{
   border-radius: 50%;
+}
+
+body[data-theme="rave"] .swatch{
+  background: var(--swatch);
+  box-shadow: 0 0 8px var(--swatch);
+  transform: rotate(45deg);
 }
 
 .hud-stats{
@@ -289,6 +315,12 @@ body[data-theme="desert"] .swatch{
 body[data-theme="desert"] .meter-bar{
   border-radius: 3px;
 }
+body[data-theme="rave"] .meter-bar{
+  border-radius: 2px;
+}
+body[data-theme="rave"] .meter-bar::after{
+  background: linear-gradient(180deg, var(--accent), var(--swatch));
+}
 
 .counters{
   display: flex;
@@ -331,6 +363,9 @@ body[data-theme="desert"] .progress-track,
 body[data-theme="desert"] .progress-fill{
   border-radius: 2px;
 }
+body[data-theme="rave"] .progress-fill{
+  background: linear-gradient(90deg, var(--swatch), var(--accent));
+}
 .time-readout{
   align-self: center;
   font-size: 12px;
@@ -354,6 +389,12 @@ body[data-theme="desert"] .progress-fill{
 body[data-theme="desert"] .marquee{
   font-style: italic;
   font-weight: 500;
+}
+
+body[data-theme="rave"] .marquee{
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
 }
 
 .transport{
@@ -382,6 +423,12 @@ body[data-theme="desert"] .marquee{
   font-family: var(--font-mono);
 }
 .circle-btn:hover{ background: var(--ink); color: var(--void); }
+body[data-theme="rave"] .circle-btn{ border-color: var(--accent); }
+body[data-theme="rave"] .circle-btn:hover{
+  background: var(--accent);
+  color: var(--void);
+  box-shadow: 0 0 16px var(--accent);
+}
 .circle-btn svg{
   width: 14px;
   height: 14px;
@@ -391,6 +438,12 @@ body[data-theme="desert"] .marquee{
   stroke: none;
 }
 #modeBtn.mode-active{ background: var(--ink); color: var(--void); }
+body[data-theme="rave"] #modeBtn.mode-active{
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--void);
+  box-shadow: 0 0 14px var(--accent);
+}
 
 .tracklist{
   display: flex;

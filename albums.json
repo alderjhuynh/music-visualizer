@@ -10,5 +10,11 @@
     "title": "distant horizons",
     "theme": "desert",
     "path": "albums/distant-horizons/"
+  },
+  {
+    "id": "dance",
+    "title": "dance!",
+    "theme": "rave",
+    "path": "albums/dance/"
   }
 ]
