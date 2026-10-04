@@ -9,12 +9,14 @@
     "id": "distant-horizons",
     "title": "distant horizons",
     "theme": "desert",
-    "path": "albums/distant-horizons/"
+    "path": "albums/distant-horizons/",
+    "hidden": true
   },
   {
     "id": "dance",
     "title": "dance!",
     "theme": "rave",
-    "path": "albums/dance/"
+    "path": "albums/dance/",
+    "hidden": true
   }
 ]

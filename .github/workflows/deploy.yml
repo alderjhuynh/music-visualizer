@@ -32,12 +32,12 @@ jobs:
         run: |
           mkdir -p dist/tracks
           cp site/*.html site/*.css site/*.js dist/
-          cp albums.json dist/
+          python3 -c "import json; albums=json.load(open('albums.json')); json.dump([a for a in albums if not a.get('hidden')], open('dist/albums.json','w'), indent=2)"
           if compgen -G "tracks/*.mp3" > /dev/null; then
             cp tracks/*.mp3 dist/tracks/
           fi
-          for dir in albums/*/; do
-            id=$(basename "$dir")
+          for id in $(python3 -c "import json; albums=json.load(open('albums.json')); print(' '.join(a['id'] for a in albums if not a.get('hidden') and a.get('path','').startswith('albums/')))"); do
+            dir="albums/$id/"
             mkdir -p "dist/albums/$id/tracks"
             if compgen -G "${dir}tracks/*.mp3" > /dev/null; then
               cp "${dir}"tracks/*.mp3 "dist/albums/$id/tracks/"
@@ -47,8 +47,8 @@ jobs:
       - name: Analyze audio -> manifest.json + data/*.json (per album)
         run: |
           python scripts/analyze.py --tracks tracks --out dist --meta tracks.meta.json
-          for dir in albums/*/; do
-            id=$(basename "$dir")
+          for id in $(python3 -c "import json; albums=json.load(open('albums.json')); print(' '.join(a['id'] for a in albums if not a.get('hidden') and a.get('path','').startswith('albums/')))"); do
+            dir="albums/$id/"
             python scripts/analyze.py \
               --tracks "${dir}tracks" \
               --out "dist/albums/$id" \

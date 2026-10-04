@@ -195,7 +195,7 @@ function trackIndexFromUrl() {
 
 async function loadAlbums() {
   const res = await fetch('albums.json');
-  albums = await res.json();
+  albums = (await res.json()).filter((a) => !a.hidden);
   renderAlbumSwitcher();
   const album = albumFromUrl();
   await switchAlbum(album, { updateUrl: false, initialTrack: trackIndexFromUrl() });
